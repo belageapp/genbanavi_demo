@@ -582,7 +582,7 @@ onAuthStateChanged(auth, async user => {
            <span style="font-size:10px;color:#999;white-space:nowrap">閲覧専用デモ</span>`;
     }
     // users.officeId を優先し、なければ offices.managerUid にフォールバック
-    const resolvedOfficeId = currentUserData.officeId || MANAGER_UID_TO_OFFICE_ID[user.uid];
+    const resolvedOfficeId = currentUserData?.officeId || MANAGER_UID_TO_OFFICE_ID[user.uid];
     if (resolvedOfficeId) {
       const selector = document.getElementById('office-selector');
       if (selector) selector.style.display = 'none';
