@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon_32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/favicon_192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="assets/favicon_512.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>業務支援システム | 現場ナビ（デモ環境・架空データ）</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#F4F6F8;min-height:100vh;color:#333}
+.top-bar{background:#fff;padding:0;display:flex;align-items:stretch;border-bottom:1px solid #E8EAED;position:sticky;top:0;z-index:100}
+.top-bar-logo{background:#fff;padding:8px 16px;display:flex;align-items:center;border-right:1px solid #E8EAED}
+.top-bar-logo img{height:34px;object-fit:contain}
+.top-bar-text{padding:0 20px;display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0}
+.top-bar-title{font-size:15px;font-weight:600;color:#1D9E75;letter-spacing:0.3px;white-space:nowrap}
+.top-bar-sub{font-size:11px;color:#888;margin-top:1px;white-space:nowrap}
+.top-bar-user{padding:0 16px;display:flex;align-items:center;gap:10px;border-left:1px solid #E8EAED;flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;color:#333;text-align:right;white-space:nowrap}
+.user-role{font-size:10px;color:#999;text-align:right;white-space:nowrap}
+.btn-logout{padding:5px 12px;border-radius:6px;border:1px solid #E8EAED;background:#fff;color:#888;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-logout:hover{background:#F4F6F8;color:#333}
+@media(max-width:600px){
+  .top-bar-text{display:none}
+  .top-bar-user{border-left:none;padding:0 12px}
+  .top-bar{justify-content:space-between}
+}
+.btn-logout{padding:5px 12px;border-radius:6px;border:1px solid #E8EAED;background:#fff;color:#888;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.btn-logout:hover{background:#F4F6F8;color:#333}
+.content{max-width:720px;margin:0 auto;padding:20px 16px}
+/* タスク */
+.task-card{background:#fff;border-radius:10px;border:1px solid #E8EAED;padding:14px 18px;margin-bottom:16px}
+.task-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.task-title{font-size:13px;font-weight:600;color:#333}
+.task-count{background:#FFF0F4;color:#C0392B;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:12px;cursor:pointer}
+.task-item:last-child{border-bottom:none}
+.task-item:hover{opacity:0.8}
+.task-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.task-approval{background:#FFF8E1;color:#CC6600}
+.task-rejected{background:#FFF0F4;color:#C0392B}
+.task-info{flex:1;color:#333}
+.task-date{font-size:10px;color:#aaa;white-space:nowrap}
+.task-empty{text-align:center;padding:12px;color:#aaa;font-size:12px}
+/* お知らせ */
+.notice-card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:14px 18px;margin-bottom:16px;border:1px solid #E8EAED}
+.notice-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.notice-title{font-size:13px;font-weight:600;color:#333}
+.notice-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
+.notice-item:last-child{border-bottom:none}
+.badge-new{background:#fdecea;color:#A32D2D;padding:1px 7px;border-radius:20px;font-size:10px;white-space:nowrap;font-weight:500}
+.badge-read{background:#f5f5f5;color:#aaa;padding:1px 7px;border-radius:20px;font-size:10px;white-space:nowrap}
+.notice-date{color:#aaa;white-space:nowrap;min-width:40px}
+.notice-text{color:#333;flex:1}
+.notice-empty{text-align:center;padding:16px;color:#aaa;font-size:12px}
+/* メニューグリッド */
+.section-label{font-size:11px;color:#999;font-weight:600;margin-bottom:8px;padding-left:2px;letter-spacing:0.5px;text-transform:uppercase}
+.menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+.menu-card{background:#fff;border-radius:10px;border:1px solid #E8EAED;box-shadow:0 1px 3px rgba(0,0,0,0.04);padding:14px 16px;cursor:pointer;text-decoration:none;display:block;transition:transform 0.1s,box-shadow 0.1s,border-color 0.1s}
+.menu-card:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,0.08);border-color:#d0d3d8}
+.menu-card:active{transform:scale(0.98)}
+.menu-card-inner{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.menu-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon-green{background:#E8F5EE}
+.icon-blue{background:#EBF3FB}
+.icon-amber{background:#FEF3C7}
+.icon-teal{background:#E0F5ED}
+.menu-name{font-size:13px;font-weight:600;color:#333}
+.menu-desc{font-size:11px;color:#999;padding-left:44px}
+.menu-card.hidden{display:none}
+/* 準備中 */
+.menu-grid-small{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.menu-card-small{background:#fff;border-radius:8px;border:1px solid #E8EAED;padding:10px 12px;text-align:center;opacity:0.5;cursor:default}
+.menu-card-small-name{font-size:12px;color:#888;font-weight:500}
+.menu-card-small-badge{font-size:10px;color:#bbb;margin-top:2px}
+/* ===== 貢献ダッシュボード ===== */
+.dash-card{background:#fff;border-radius:10px;border:1px solid #E8EAED;margin-bottom:16px;overflow:hidden}
+.dash-month-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f0f0f0}
+.dash-nav-btn{width:30px;height:30px;border:1px solid #E8EAED;background:#F4F6F8;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+.dash-nav-btn:active{background:#e0e0e0}
+.dash-month-label{font-size:14px;font-weight:600;color:#333}
+.dash-loading{text-align:center;padding:16px;color:#aaa;font-size:12px}
+.dash-dept-header{display:flex;align-items:center;gap:6px;padding:10px 14px;cursor:pointer;background:#F0FAF6;border-bottom:1px solid #E0F5ED;-webkit-tap-highlight-color:transparent;user-select:none}
+.dash-dept-header:active{background:#e4f7ef}
+.dash-dept-name{font-size:12px;font-weight:600;color:#0F6E56;flex:1;min-width:0}
+.dash-area-header{display:flex;align-items:center;gap:6px;padding:8px 14px 8px 28px;cursor:pointer;background:#fafafa;border-bottom:1px solid #f0f0f0;-webkit-tap-highlight-color:transparent;user-select:none}
+.dash-area-header:active{background:#f0f0f0}
+.dash-area-name{font-size:12px;font-weight:500;color:#555;flex:1;min-width:0}
+.dash-office-row{display:flex;align-items:center;gap:5px;padding:7px 12px 7px 42px;border-bottom:1px solid #fafafa}
+.dash-office-row:last-child{border-bottom:none}
+.dash-office-name{font-size:11px;color:#444;width:86px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash-bar-wrap{flex:1;position:relative;height:8px;background:#E8EAED;border-radius:4px;min-width:50px;overflow:visible}
+.dash-bar{height:100%;border-radius:4px;overflow:hidden}
+.dash-pace-line{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:#555;border-radius:1px;pointer-events:none;z-index:1}
+.dash-pct{font-size:10px;color:#888;width:30px;text-align:right;flex-shrink:0}
+.dash-diff{font-size:10px;font-weight:600;width:54px;text-align:right;flex-shrink:0;white-space:nowrap}
+.dash-toggle{font-size:9px;color:#aaa;flex-shrink:0;width:10px;text-align:center}
+.dash-agg-bar-wrap{width:56px;height:5px;background:#d4f4e8;border-radius:3px;overflow:hidden;flex-shrink:0}
+.dash-agg-bar{height:100%;border-radius:3px;background:#1D9E75}
+.dash-agg-bar.over{background:#E24B4A}
+.dash-agg-pct{font-size:11px;color:#0F6E56;font-weight:600;width:32px;text-align:right;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-logo">
+    <span style="font-size:18px;font-weight:800;color:#1D9E75;letter-spacing:0.5px;white-space:nowrap">現場ナビ</span>
+  </div>
+  <div class="top-bar-text">
+    <div class="top-bar-title">業務支援システム</div>
+    <div class="top-bar-sub">現場ナビ（デモ環境・架空データ）</div>
+  </div>
+  <div class="top-bar-user" id="top-bar-user" style="display:none">
+    <div>
+      <div class="user-name" id="user-name"></div>
+      <div class="user-role" id="user-role"></div>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- タスク -->
+  <div class="task-card" id="task-card" style="display:none">
+    <div class="task-header">
+      <div class="task-title">📋 あなたへのタスク</div>
+      <span class="task-count" id="task-count">0件</span>
+    </div>
+    <div id="task-list"><div class="task-empty">タスクはありません</div></div>
+  </div>
+
+  <!-- お知らせ -->
+  <div class="notice-card">
+    <div class="notice-header">
+      <div class="notice-title">お知らせ</div>
+    </div>
+    <div id="notice-list"><div class="notice-empty">お知らせはありません</div></div>
+  </div>
+
+  <!-- 貢献ダッシュボード -->
+  <div class="section-label">貢献状況</div>
+  <div class="dash-card" id="dash-card" style="display:none">
+    <div class="dash-month-nav">
+      <button class="dash-nav-btn" onclick="shiftDashMonth(-1)">‹</button>
+      <span id="dash-month-label">読み込み中...</span>
+      <button class="dash-nav-btn" onclick="shiftDashMonth(1)">›</button>
+    </div>
+    <div id="dash-content"><div class="dash-loading">読み込み中...</div></div>
+  </div>
+
+  <!-- メニュー -->
+  <div class="section-label">メニュー</div>
+  <div class="menu-grid">
+
+    <a href="daily.html" class="menu-card" id="menu-daily">
+      <div class="menu-card-inner">
+        <div class="menu-icon icon-green">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="menu-name">貢献速報（日次）</div>
+      </div>
+      <div class="menu-desc">日次入力・速報確認</div>
+    </a>
+
+    <a href="monthly.html" class="menu-card" id="menu-monthly">
+      <div class="menu-card-inner">
+        <div class="menu-icon icon-teal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="menu-name">貢献速報（月次）</div>
+      </div>
+      <div class="menu-desc">全事業所の目標・実績</div>
+    </a>
+
+    <a href="morning-report.html" class="menu-card" id="menu-morning-report">
+      <div class="menu-card-inner">
+        <div class="menu-icon" style="background:#FFF4E6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+        </div>
+        <div class="menu-name">朝礼報告（週次）</div>
+      </div>
+      <div class="menu-desc">マネジャー週次報告</div>
+    </a>
+
+    <a href="report.html" class="menu-card" id="menu-report">
+      <div class="menu-card-inner">
+        <div class="menu-icon icon-blue">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="menu-name">貢献実績表</div>
+      </div>
+      <div class="menu-desc">目標・実績・貢献度</div>
+    </a>
+
+    <a href="settings.html" class="menu-card" id="menu-settings">
+      <div class="menu-card-inner">
+        <div class="menu-icon" style="background:#F0EEF8">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B4FA0" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <div class="menu-name">マスタ設定</div>
+      </div>
+      <div class="menu-desc">事業所・単価・稼働日</div>
+    </a>
+
+    <a href="mirai-todo.html" class="menu-card" id="menu-mirai-todo">
+      <div class="menu-card-inner">
+        <div class="menu-icon" style="background:#D1FAE5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#065F46" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="menu-name">未来創造企業 ToDo</div>
+      </div>
+      <div class="menu-desc">認証取組の進捗管理</div>
+    </a>
+
+  </div>
+
+  <!-- 準備中 -->
+  <div class="section-label">準備中</div>
+  <div class="menu-grid-small">
+    <div class="menu-card-small"><div class="menu-card-small-name">中期経営計画</div><div class="menu-card-small-badge">準備中</div></div>
+    <div class="menu-card-small"><div class="menu-card-small-name">報酬内容明細</div><div class="menu-card-small-badge">準備中</div></div>
+    <div class="menu-card-small"><div class="menu-card-small-name">シフト管理</div><div class="menu-card-small-badge">準備中</div></div>
+    <div class="menu-card-small"><div class="menu-card-small-name">採用管理</div><div class="menu-card-small-badge">準備中</div></div>
+    <div class="menu-card-small"><div class="menu-card-small-name">各種マニュアル</div><div class="menu-card-small-badge">準備中</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { can, resolveTier } from './perm.js';
+import { getFirestore, collection, doc, getDoc, getDocs, query, orderBy, limit, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey:"AIzaSyAGQ_qSeEPerW6R5pCuBufuFKh6n08aplY",
+  authDomain:"genba-navi-demo.firebaseapp.com",
+  projectId:"genba-navi-demo",
+  storageBucket:"genba-navi-demo.firebasestorage.app",
+  messagingSenderId:"840606402829",
+  appId:"1:840606402829:web:aa250f2061f762dfe1768c"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const ROLE_LABELS = {
+  admin:'Administrator', support:'事業支援課',
+  area_manager:'エリアマネジャー', unit_manager:'ユニットマネジャー',
+  manager:'事業所管理者'
+};
+
+// ===== ダッシュボード =====
+const DASH_STRUCTURE = [
+  {cat:'障害福祉サービス事業部', areas:[
+    {label:'中央エリア', offices:['ひまわり広場','そよ風の家']},
+    {label:'東エリア',   offices:['みらい工房']}
+  ]}
+];
+
+let dashYear = null, dashMonth = null, dashCurrentUser = null, dashUserData = null;
+
+function dashDateToStr(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function dashGetDatesInRange(s,e){
+  const dates=[],cur=new Date(s+'T00:00:00'),end=new Date(e+'T00:00:00');
+  while(cur<=end){dates.push(dashDateToStr(cur));cur.setDate(cur.getDate()+1);}
+  return dates;
+}
+function dashGetFY(dateStr){const mo=parseInt(dateStr.substring(5,7)),yr=parseInt(dateStr.substring(0,4));return mo>=4?yr:yr-1;}
+
+function dashFindLocation(officeName){
+  for(const dept of DASH_STRUCTURE){
+    if(dept.areas){
+      for(const area of dept.areas){
+        if(area.offices.includes(officeName))return{deptCat:dept.cat,areaLabel:area.label};
+      }
+    }
+    if(dept.single&&dept.single.includes(officeName))return{deptCat:dept.cat,areaLabel:null};
+  }
+  return null;
+}
+
+function dashComputeOpenState(userData, userOfficeName){
+  const tier = resolveTier(userData||{role:'admin'}).tier;
+  if(tier==='admin'||tier==='editor')return{type:'all_open'};
+  if(tier==='supporter')return{type:'support'};
+  const loc=userOfficeName?dashFindLocation(userOfficeName):null;
+  return{type:'own_area',loc};
+}
+
+window.shiftDashMonth = function(dir){
+  dashMonth+=dir;
+  if(dashMonth>12){dashMonth=1;dashYear++;}
+  if(dashMonth<1){dashMonth=12;dashYear--;}
+  loadDashboard();
+};
+
+window.toggleDash = function(id, headerEl){
+  const el=document.getElementById(id);
+  const tog=headerEl.querySelector('.dash-toggle');
+  const isOpen=el.style.display!=='none';
+  el.style.display=isOpen?'none':'block';
+  if(tog)tog.textContent=isOpen?'▶':'▼';
+};
+
+async function initDashboard(user, userData){
+  dashCurrentUser=user; dashUserData=userData;
+  const today=new Date();
+  dashYear=today.getFullYear(); dashMonth=today.getMonth()+1;
+  document.getElementById('dash-card').style.display='block';
+  await loadDashboard();
+}
+
+async function loadDashboard(){
+  const monthStr=`${dashYear}-${String(dashMonth).padStart(2,'0')}`;
+  document.getElementById('dash-month-label').textContent=`${dashYear}年${dashMonth}月`;
+  document.getElementById('dash-content').innerHTML='<div class="dash-loading">読み込み中...</div>';
+  try{
+    // 1. offices + prices
+    const [offSnap,prSnap]=await Promise.all([getDocs(collection(db,'offices')),getDocs(collection(db,'prices'))]);
+    const prices={};
+    prSnap.forEach(d=>prices[d.id]=d.data());
+    const officeCapMap={};
+    const idToOfficeName={};
+    offSnap.forEach(d=>{
+      const data=d.data();
+      if(!data.name)return;
+      const pr=prices[data.priceId]||{};
+      officeCapMap[data.name]=pr.capacity||data.capacity||10;
+      idToOfficeName[d.id]=data.name;
+    });
+    const userOfficeName=dashUserData&&dashUserData.officeId?idToOfficeName[dashUserData.officeId]||null:null;
+    const openState=dashComputeOpenState(dashUserData,userOfficeName);
+
+    // 2. workdays（月の稼働日）
+    const fy=dashMonth>=4?dashYear:dashYear-1;
+    const allNames=Object.keys(officeCapMap);
+    const wdByOffice={};
+    allNames.forEach(n=>wdByOffice[n]={});
+    await Promise.all(allNames.map(async name=>{
+      try{
+        const snap=await getDoc(doc(db,'workdays',`${fy}_${name}`));
+        if(snap.exists())wdByOffice[name]=snap.data().days||{};
+      }catch(_){}
+    }));
+
+    // 3. reports（月一括クエリ）
+    const repByOffice={};
+    allNames.forEach(n=>repByOffice[n]={});
+    const rSnap=await getDocs(query(collection(db,'reports'),where('month','==',monthStr)));
+    rSnap.forEach(d=>{
+      const r=d.data();
+      if(!repByOffice[r.office])repByOffice[r.office]={};
+      let actual=0;
+      if(r.services){Object.values(r.services).forEach(sv=>actual+=(sv.actual||0));}
+      else actual=r.kids||0;
+      if(!repByOffice[r.office][r.date])repByOffice[r.office][r.date]={actual:0,reported:false};
+      repByOffice[r.office][r.date].actual+=actual;
+      if(r.reported||actual>0)repByOffice[r.office][r.date].reported=true;
+    });
+
+    // 4. stats per office
+    const monthStart=`${monthStr}-01`;
+    const monthEnd=`${monthStr}-${String(new Date(dashYear,dashMonth,0).getDate()).padStart(2,'0')}`;
+    const statsMap={};
+    allNames.forEach(name=>{
+      const cap=officeCapMap[name];
+      const wdays=wdByOffice[name]||{};
+      const reps=repByOffice[name]||{};
+      let actual=0; const wdDates=[]; let lastDate=null;
+      dashGetDatesInRange(monthStart,monthEnd).forEach(d=>{
+        if(wdays[d]===1){
+          wdDates.push(d);
+          const rep=reps[d];
+          if(rep){actual+=rep.actual;if(rep.actual>0&&(!lastDate||d>lastDate))lastDate=d;}
+        }
+      });
+      const goal=cap*wdDates.length;
+      const pct=goal>0?Math.min(Math.round(actual/goal*100),100):0;
+      let markerPct=null,paceText=null,paceColor='#0F6E56',barStyle=null;
+      if(lastDate&&goal>0&&wdDates.length>0){
+        const elapsed=wdDates.filter(d=>d<=lastDate).length;
+        if(elapsed>0){
+          const expPace=Math.round(goal*elapsed/wdDates.length);
+          markerPct=Math.min(Math.round(elapsed/wdDates.length*100),100);
+          const diff=actual-expPace;
+          if(diff>0){paceText=`+${diff}名`;paceColor='#0F6E56';}
+          else if(diff===0){paceText='順調';paceColor='#0F6E56';}
+          else{paceText=`${Math.abs(diff)}名遅れ`;paceColor='#E65100';}
+          if(pct<=markerPct)
+            barStyle=`background:linear-gradient(to right,#1D9E75 0%,#1D9E75 ${pct}%,#EF9F27 ${pct}%,#EF9F27 ${markerPct}%,transparent ${markerPct}%,transparent 100%);width:100%`;
+          else
+            barStyle=`background:linear-gradient(to right,#1D9E75 0%,#1D9E75 ${markerPct}%,#2196F3 ${markerPct}%,#2196F3 ${pct}%,transparent ${pct}%,transparent 100%);width:100%`;
+        }
+      }
+      if(!barStyle)barStyle=`width:${pct}%;background:${actual>goal?'#E24B4A':'#1D9E75'}`;
+      statsMap[name]={actual,goal,pct,markerPct,paceText,paceColor,barStyle};
+    });
+
+    renderDashboard(statsMap, openState);
+  }catch(e){
+    console.error(e);
+    document.getElementById('dash-content').innerHTML='<div class="dash-loading">読み込みに失敗しました</div>';
+  }
+}
+
+function renderDashboard(statsMap, openState){
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function isDeptOpen(dept){
+    if(openState.type==='all_open')return true;
+    if(openState.type==='support')return dept.cat==='障害福祉サービス事業部';
+    // own_area: 常にオン（単一事業部のデモ構成）
+    if(dept.cat==='障害福祉サービス事業部')return true;
+    return openState.loc&&openState.loc.deptCat===dept.cat;
+  }
+
+  function isAreaOpen(area){
+    if(openState.type==='all_open')return true;
+    if(openState.type==='support')return true; // 発達支援の全エリアオープン（支援課はdept単位で制御済み）
+    // own_area: 自分の所属エリアのみ
+    return openState.loc&&openState.loc.areaLabel===area.label;
+  }
+
+  function aggBarHtml(offices){
+    let act=0,goal=0;
+    offices.forEach(n=>{const s=statsMap[n];if(s){act+=s.actual;goal+=s.goal;}});
+    const pct=goal>0?Math.min(Math.round(act/goal*100),100):0;
+    return `<div class="dash-agg-bar-wrap"><div class="dash-agg-bar${act>goal?' over':''}" style="width:${pct}%"></div></div><span class="dash-agg-pct">${pct}%</span>`;
+  }
+
+  function officeRowHtml(name){
+    const s=statsMap[name];
+    if(!s)return'';
+    const paceLine=s.markerPct!=null?`<div class="dash-pace-line" style="left:${s.markerPct}%"></div>`:'';
+    const diff=s.paceText?`<span class="dash-diff" style="color:${s.paceColor}">${esc(s.paceText)}</span>`:`<span class="dash-diff"></span>`;
+    return `<div class="dash-office-row">
+      <span class="dash-office-name" title="${esc(name)}">${esc(name)}</span>
+      <div class="dash-bar-wrap"><div class="dash-bar" style="${s.barStyle}"></div>${paceLine}</div>
+      <span class="dash-pct">${s.pct}%</span>${diff}
+    </div>`;
+  }
+
+  let html='';
+  DASH_STRUCTURE.forEach((dept,di)=>{
+    const deptOffices=dept.areas?dept.areas.flatMap(a=>a.offices):dept.single;
+    const deptId=`dash-dept-${di}`;
+    const dOpen=isDeptOpen(dept);
+    html+=`<div class="dash-dept-header" onclick="toggleDash('${deptId}',this)">
+      <span class="dash-toggle">${dOpen?'▼':'▶'}</span>
+      <span class="dash-dept-name">${esc(dept.cat)}</span>
+      ${aggBarHtml(deptOffices)}
+    </div>
+    <div id="${deptId}"${dOpen?'':' style="display:none"'}>`;
+
+    if(dept.areas){
+      dept.areas.forEach((area,ai)=>{
+        const areaId=`dash-area-${di}-${ai}`;
+        const aOpen=dOpen&&isAreaOpen(area);
+        html+=`<div class="dash-area-header" onclick="toggleDash('${areaId}',this)">
+          <span class="dash-toggle">${aOpen?'▼':'▶'}</span>
+          <span class="dash-area-name">${esc(area.label)}</span>
+          ${aggBarHtml(area.offices)}
+        </div>
+        <div id="${areaId}"${aOpen?'':' style="display:none"'}>`;
+        area.offices.forEach(n=>{html+=officeRowHtml(n);});
+        html+=`</div>`;
+      });
+    }else{
+      dept.single.forEach(n=>{html+=officeRowHtml(n);});
+    }
+    html+=`</div>`;
+  });
+
+  document.getElementById('dash-content').innerHTML=html;
+}
+
+// 権限別メニュー表示制御
+function applyMenuByRole(userData) {
+  if (!can(userData, 'import.use')) {
+    document.getElementById('menu-import').classList.add('hidden');
+  }
+  // 一般ユーザー（自事業所入力のみ）は朝礼報告を非表示
+  if (resolveTier(userData).tier === 'user') {
+    document.getElementById('menu-morning-report').classList.add('hidden');
+  }
+}
+
+// タスク読み込み
+async function loadTasks(uid, role) {
+  try {
+    // 自分宛のタスクを取得
+    const q = query(
+      collection(db, 'tasks'),
+      where('assignedTo', '==', uid),
+      where('status', '==', 'pending'),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return;
+
+    const card = document.getElementById('task-card');
+    const list = document.getElementById('task-list');
+    const count = document.getElementById('task-count');
+
+    card.style.display = 'block';
+    count.textContent = `${snap.size}件`;
+    list.innerHTML = '';
+
+    snap.forEach(d => {
+      const t = d.data();
+      const date = t.createdAt ? t.createdAt.substring(0,10) : '';
+      const badgeCls = t.type === 'workdays_rejected' ? 'task-rejected' : 'task-approval';
+      const badgeLabel = t.type === 'workdays_rejected' ? '差し戻し' : '承認待ち';
+      list.innerHTML += `
+        <div class="task-item" onclick="location.href='settings.html'">
+          <span class="task-badge ${badgeCls}">${badgeLabel}</span>
+          <span class="task-info">${t.message || t.officeName + ' 稼働日設定'}</span>
+          <span class="task-date">${date}</span>
+        </div>`;
+    });
+  } catch(e) { /* タスクがなければ非表示のまま */ }
+}
+
+// お知らせ読み込み
+async function loadNotices() {
+  try {
+    const snap = await getDocs(query(collection(db,'notices'), orderBy('createdAt','desc'), limit(5)));
+    if (snap.empty) return;
+    const list = document.getElementById('notice-list');
+    list.innerHTML = '';
+    snap.forEach(d => {
+      const n = d.data();
+      const date = n.createdAt?.substring(5,10).replace('-','/') || '';
+      const isNew = n.isNew || false;
+      list.innerHTML += `<div class="notice-item">
+        <span class="${isNew?'badge-new':'badge-read'}">${isNew?'新着':'既読'}</span>
+        <span class="notice-date">${date}</span>
+        <span class="notice-text">${n.title||''}</span>
+      </div>`;
+    });
+  } catch(e) {}
+}
+
+// ログアウト
+window.doLogout = async function() {
+  await signOut(auth);
+  location.href = 'login.html';
+};
+
+// 認証チェック
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    location.href = 'login.html';
+    return;
+  }
+
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists() || snap.data().disabled) {
+      await signOut(auth);
+      location.href = 'login.html';
+      return;
+    }
+
+    const userData = snap.data();
+
+    // ユーザー情報表示
+    document.getElementById('top-bar-user').style.display = 'flex';
+    document.getElementById('user-name').textContent = userData.displayName || user.email;
+    document.getElementById('user-role').textContent = ROLE_LABELS[userData.role] || userData.role;
+
+    // ロール別メニュー制御
+    applyMenuByRole(userData);
+
+    // タスク・お知らせ読み込み・ダッシュボード
+    await Promise.all([
+      loadTasks(user.uid, userData.role),
+      loadNotices(),
+      initDashboard(user, userData)
+    ]);
+
+  } catch(e) {
+    console.error(e);
+  }
+});
+</script>
+</body>
+</html>
