@@ -231,7 +231,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { can, resolveTier } from './perm.js';
 import { getFirestore, collection, doc, getDoc, getDocs, query, orderBy, limit, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -480,12 +480,9 @@ function renderDashboard(statsMap, openState){
 
 // 権限別メニュー表示制御
 function applyMenuByRole(userData) {
-  if (!can(userData, 'import.use')) {
-    document.getElementById('menu-import').classList.add('hidden');
-  }
-  // 一般ユーザー（自事業所入力のみ）は朝礼報告を非表示
+  // 一般ユーザー（自事業所入力のみ）・ゲストは朝礼報告を非表示
   if (resolveTier(userData).tier === 'user') {
-    document.getElementById('menu-morning-report').classList.add('hidden');
+    document.getElementById('menu-morning-report')?.classList.add('hidden');
   }
 }
 
@@ -555,31 +552,31 @@ window.doLogout = async function() {
 // 認証チェック
 onAuthStateChanged(auth, async user => {
   if (!user) {
-    location.href = 'login.html';
+    try { await signInAnonymously(auth); } catch(e) { console.error(e); }
     return;
   }
 
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists() || snap.data().disabled) {
+    if (snap.exists() && snap.data().disabled) {
       await signOut(auth);
       location.href = 'login.html';
       return;
     }
 
-    const userData = snap.data();
+    const userData = snap.exists() ? snap.data() : null;
 
     // ユーザー情報表示
     document.getElementById('top-bar-user').style.display = 'flex';
-    document.getElementById('user-name').textContent = userData.displayName || user.email;
-    document.getElementById('user-role').textContent = ROLE_LABELS[userData.role] || userData.role;
+    document.getElementById('user-name').textContent = userData ? (userData.displayName || user.email) : 'ゲスト';
+    document.getElementById('user-role').textContent = userData ? (ROLE_LABELS[userData.role] || userData.role) : '閲覧専用デモ';
 
     // ロール別メニュー制御
     applyMenuByRole(userData);
 
     // タスク・お知らせ読み込み・ダッシュボード
     await Promise.all([
-      loadTasks(user.uid, userData.role),
+      loadTasks(user.uid, userData?.role),
       loadNotices(),
       initDashboard(user, userData)
     ]);

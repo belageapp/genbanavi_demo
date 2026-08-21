@@ -539,7 +539,7 @@ textarea:focus{border-color:#1D9E75}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { can, resolveTier } from './perm.js';
 
 const firebaseConfig = {
@@ -561,20 +561,25 @@ const ROLE_LABELS = {
   manager:'事業所管理者'
 };
 let currentUserData = null;
+let isGuest = false; // 匿名アクセス（閲覧専用デモ）
 
 onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = 'login.html'; return; }
+  if (!user) { try { await signInAnonymously(auth); } catch(e) { console.error(e); } return; }
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists() || snap.data().disabled) {
+    if (snap.exists() && snap.data().disabled) {
       await signOut(auth); location.href = 'login.html'; return;
     }
-    currentUserData = snap.data();
+    currentUserData = snap.exists() ? snap.data() : null;
+    isGuest = !currentUserData;
     await loadMasterData();
     const el = document.getElementById('top-bar-user-info');
     if (el) {
-      el.innerHTML = `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
-        <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`;
+      el.innerHTML = currentUserData
+        ? `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
+           <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`
+        : `<span style="font-size:11px;color:#555;white-space:nowrap">ゲスト</span>
+           <span style="font-size:10px;color:#999;white-space:nowrap">閲覧専用デモ</span>`;
     }
     // users.officeId を優先し、なければ offices.managerUid にフォールバック
     const resolvedOfficeId = currentUserData.officeId || MANAGER_UID_TO_OFFICE_ID[user.uid];
@@ -1405,6 +1410,7 @@ window.adjExtra=function(field,delta){
 };
 
 window.submitReport=async function(){
+  if(isGuest){alert('これは閲覧専用のデモです。実際の入力・保存はできません。');return;}
   const btn=document.getElementById('submit-btn-normal');
   if(btn&&btn.disabled)return; // 連打防止
   if(btn){btn.disabled=true;btn.textContent='送信中...';}
@@ -1445,6 +1451,7 @@ window.submitReport=async function(){
 };
 
 window.submitLafore=async function(){
+  if(isGuest){alert('これは閲覧専用のデモです。実際の入力・保存はできません。');return;}
   const btn=document.getElementById('submit-btn-lafore');
   if(btn&&btn.disabled)return; // 連打防止
   if(btn){btn.disabled=true;btn.textContent='送信中...';}
@@ -1725,6 +1732,7 @@ function numpadConfirm(advance){
 window.numpadClose=function(){numpadConfirm(false);};
 
 window.saveWeeklyPlanned=async function(){
+  if(isGuest){alert('これは閲覧専用のデモです。実際の入力・保存はできません。');return;}
   if(!state.cur)return;
   try{
     for(const {dateStr} of wpState.days){

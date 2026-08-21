@@ -109,7 +109,7 @@ table.detail-table thead td{background:#fafafa;font-weight:700;color:#333;font-s
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, doc, getDoc, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const cfg = {
@@ -133,14 +133,17 @@ let offices = [];
 
 // 認証
 onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = 'login.html'; return; }
+  if (!user) { try { await signInAnonymously(auth); } catch(e) { console.error(e); } return; }
   const snap = await getDoc(doc(db,'users',user.uid));
-  if (!snap.exists() || snap.data().disabled) { await signOut(auth); location.href = 'login.html'; return; }
-  const ud = snap.data();
+  if (snap.exists() && snap.data().disabled) { await signOut(auth); location.href = 'login.html'; return; }
+  const ud = snap.exists() ? snap.data() : null;
   const el = document.getElementById('top-bar-user-info');
   if (el) {
-    el.innerHTML = `<span style="font-size:11px;color:#555">${ud.displayName||user.email}</span>
-      <span style="font-size:10px;color:#999">${ROLE_LABELS[ud.role]||ud.role}</span>`;
+    el.innerHTML = ud
+      ? `<span style="font-size:11px;color:#555">${ud.displayName||user.email}</span>
+         <span style="font-size:10px;color:#999">${ROLE_LABELS[ud.role]||ud.role}</span>`
+      : `<span style="font-size:11px;color:#555">ゲスト</span>
+         <span style="font-size:10px;color:#999">閲覧専用デモ</span>`;
   }
   await init();
 });

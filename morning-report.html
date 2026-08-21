@@ -217,7 +217,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;bac
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, getDoc, setDoc, query, where, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, onAuthStateChanged, signOut }
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { can } from './perm.js';
 
@@ -310,18 +310,20 @@ function getWeekInfo(weekStart, weekEnd) {
 
 // ===== 認証 =====
 onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = 'login.html'; return; }
+  if (!user) { try { await signInAnonymously(auth); } catch(e) { console.error(e); } return; }
   currentUser = user;
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists() || snap.data().disabled) {
+    if (snap.exists() && snap.data().disabled) {
       await signOut(auth); location.href = 'login.html'; return;
     }
-    currentUserData = snap.data();
+    currentUserData = snap.exists() ? snap.data() : null;
     const el = document.getElementById('top-bar-user-info');
-    if (el) el.innerHTML =
-      `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
-       <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`;
+    if (el) el.innerHTML = currentUserData
+      ? `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
+         <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`
+      : `<span style="font-size:11px;color:#555;white-space:nowrap">ゲスト</span>
+         <span style="font-size:10px;color:#999;white-space:nowrap">閲覧専用デモ</span>`;
     await initPage();
   } catch(e) { console.error(e); }
 });
@@ -726,6 +728,7 @@ function escHtml(s) {
 
 // ===== 保存 =====
 window.saveReport = async function() {
+  if (!currentUserData) { alert('これは閲覧専用のデモです。実際の保存はできません。'); return; }
   const btn = document.getElementById('save-btn');
   if (btn) btn.disabled = true;
 

@@ -226,7 +226,7 @@ th:last-child,td:last-child{border-right:none}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, doc, getDoc, getDocs, query, where, setDoc, addDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { can } from './perm.js';
 
 const firebaseConfig = {
@@ -250,19 +250,22 @@ const ROLE_LABELS = {
 let currentUserData = null;
 
 onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = 'login.html'; return; }
+  if (!user) { try { await signInAnonymously(auth); } catch(e) { console.error(e); } return; }
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists() || snap.data().disabled) {
+    if (snap.exists() && snap.data().disabled) {
       await signOut(auth); location.href = 'login.html'; return;
     }
-    currentUserData = snap.data();
+    currentUserData = snap.exists() ? snap.data() : null;
     canEdit = can(currentUserData, 'monthly.edit');
     // ユーザー表示
     const el = document.getElementById('top-bar-user-info');
     if (el) {
-      el.innerHTML = `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
-        <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`;
+      el.innerHTML = currentUserData
+        ? `<span style="font-size:11px;color:#555;white-space:nowrap">${currentUserData.displayName||user.email}</span>
+           <span style="font-size:10px;color:#999;white-space:nowrap">${ROLE_LABELS[currentUserData.role]||currentUserData.role}</span>`
+        : `<span style="font-size:11px;color:#555;white-space:nowrap">ゲスト</span>
+           <span style="font-size:10px;color:#999;white-space:nowrap">閲覧専用デモ</span>`;
     }
   } catch(e) { console.error(e); }
 });
